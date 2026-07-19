@@ -140,21 +140,51 @@ input,select,textarea{font-family:inherit;font-size:15px}
 .add-zone-btn{width:100%;padding:14px;background:var(--white);border:2px dashed var(--gold);border-radius:12px;color:var(--navy);font-size:14px;font-weight:700;margin-bottom:12px;display:flex;align-items:center;justify-content:center;gap:8px}
 .add-zone-btn:active{background:var(--cream)}
 
+/* ── ZONE PHOTO ── */
+.zone-photo-wrap{margin-top:10px}
+.zone-photo-label{font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:6px;display:block}
+.zone-photo-btn{width:100%;padding:12px;background:var(--cream);border:1.5px dashed var(--border);border-radius:10px;color:var(--navy);font-size:13px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:8px}
+.zone-photo-btn:active{background:var(--border)}
+.zone-photo-preview{position:relative;margin-top:8px;display:none}
+.zone-photo-preview.show{display:block}
+.zone-photo-preview img{width:100%;max-height:180px;object-fit:cover;border-radius:10px;display:block;border:1.5px solid var(--border)}
+.zone-photo-remove{position:absolute;top:8px;right:8px;background:rgba(20,20,30,.7);color:var(--white);width:28px;height:28px;border-radius:50%;font-size:16px;display:flex;align-items:center;justify-content:center;border:none}
+.zone-fill-depth{display:none;margin-top:10px}
+.zone-fill-depth.show{display:block}
+
+/* ── MATERIALS PANEL ── */
+.materials-panel{background:var(--white);border-radius:8px;padding:0;margin-top:10px;overflow:hidden;border:1px solid var(--border)}
+.mat-row{display:flex;justify-content:space-between;padding:8px 12px;font-size:12px;border-bottom:1px solid var(--border);color:var(--text)}
+.mat-row:last-child{border:none;background:var(--cream);font-weight:700;color:var(--navy)}
+.mat-row .mat-name{color:var(--muted)}
+.mat-empty{padding:14px;text-align:center;color:var(--muted);font-size:12px}
+
+/* ── ISB TIER ── */
+.isb-tier-row{display:flex;gap:8px;margin-top:6px}
+.isb-tier-btn{flex:1;padding:10px 6px;border-radius:8px;font-size:11px;font-weight:700;border:2px solid var(--border);background:var(--white);color:var(--muted);text-align:center;line-height:1.3}
+.isb-tier-btn.active{border-color:var(--gold);background:#fdf6e3;color:var(--amber)}
+.isb-tier-sub{font-size:9px;color:var(--muted);margin-top:2px;font-weight:500;text-transform:none;letter-spacing:0}
+
 /* ── STICKY TOTAL FOOTER ── */
 .sticky-footer{
   position:fixed;bottom:calc(56px + var(--safe));left:0;right:0;
   background:var(--navy);border-top:2px solid var(--gold);
-  padding:10px 16px;z-index:40;
-  display:flex;align-items:center;justify-content:space-between;gap:12px;
+  padding:10px 12px 12px;z-index:40;
 }
-.sf-item{text-align:center}
+.sf-stats{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px}
+.sf-item{text-align:center;flex:1}
 .sf-label{font-size:9px;color:var(--muted);letter-spacing:1px;text-transform:uppercase}
-.sf-val{font-size:18px;font-weight:800;color:var(--gold);margin-top:1px}
-.sf-val.grand{color:var(--orange);font-size:22px}
-.sf-actions{display:flex;gap:8px}
-.sf-btn{padding:10px 16px;border-radius:8px;font-size:13px;font-weight:700}
-.sf-btn.save{background:var(--gold);color:var(--navy)}
-.sf-btn.print{background:rgba(255,255,255,.1);color:var(--white);border:1px solid rgba(255,255,255,.2)}
+.sf-val{font-size:17px;font-weight:800;color:var(--gold);margin-top:1px}
+.sf-val.grand{color:var(--orange);font-size:20px}
+.sf-actions{display:flex;gap:8px;align-items:stretch}
+.sf-btn{border-radius:10px;font-size:15px;font-weight:800}
+.sf-btn.save{flex:1;background:var(--gold);color:var(--navy);padding:15px 16px;min-height:50px;display:flex;align-items:center;justify-content:center;gap:8px;letter-spacing:.3px;box-shadow:0 2px 8px rgba(0,0,0,.25)}
+.sf-btn.save:active{background:var(--gold2)}
+.sf-btn.print{background:rgba(255,255,255,.1);color:var(--white);border:1px solid rgba(255,255,255,.2);width:50px;flex-shrink:0;font-size:18px;display:flex;align-items:center;justify-content:center}
+.sync-dot{width:8px;height:8px;border-radius:50%;background:var(--muted);flex-shrink:0}
+.sync-dot.pending{background:var(--amber)}
+.sync-dot.synced{background:var(--green)}
+.sync-dot.failed{background:var(--red)}
 
 /* ── DETAIL SCREEN ── */
 .detail-head{padding:16px;background:var(--white);border-bottom:1px solid var(--border)}
@@ -278,6 +308,14 @@ input,select,textarea{font-family:inherit;font-size:15px}
             <div class="field"><label>Date</label><input type="text" id="b-date" readonly></div>
             <div class="field"><label>Valid (days)</label><input type="number" id="b-valid" value="30" min="1"></div>
           </div>
+          <div class="field">
+            <label>ISB Bonus Tier <span style="text-transform:none;font-weight:500;color:var(--muted)">(auto-guessed, tap to override)</span></label>
+            <div class="isb-tier-row" id="isb-tier-row">
+              <button type="button" class="isb-tier-btn" data-tier="low" onclick="setIsbTier('low')">Low<div class="isb-tier-sub">10%</div></button>
+              <button type="button" class="isb-tier-btn" data-tier="medium" onclick="setIsbTier('medium')">Medium<div class="isb-tier-sub">17%</div></button>
+              <button type="button" class="isb-tier-btn" data-tier="top" onclick="setIsbTier('top')">Top Dollar<div class="isb-tier-sub">20%</div></button>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -288,15 +326,28 @@ input,select,textarea{font-family:inherit;font-size:15px}
         Add Zone
       </button>
 
+      <!-- Materials Estimate -->
+      <div class="section-card">
+        <div class="section-head"><h3>Est. Materials</h3><span id="mat-total-chip">$0</span></div>
+        <div class="section-body" style="padding:0">
+          <div class="materials-panel" id="materials-panel"><div class="mat-empty">Add zone dimensions to see a live materials estimate</div></div>
+        </div>
+      </div>
+
     </div>
     <!-- Sticky footer -->
     <div class="sticky-footer" id="sticky-footer">
-      <div class="sf-item"><div class="sf-label">Deposit</div><div class="sf-val" id="sf-dep">$0</div></div>
-      <div class="sf-item"><div class="sf-label">Total</div><div class="sf-val grand" id="sf-total">$0</div></div>
-      <div class="sf-item"><div class="sf-label">Balance</div><div class="sf-val" id="sf-bal">$0</div></div>
+      <div class="sf-stats">
+        <div class="sf-item"><div class="sf-label">Deposit</div><div class="sf-val" id="sf-dep">$0</div></div>
+        <div class="sf-item"><div class="sf-label">Total</div><div class="sf-val grand" id="sf-total">$0</div></div>
+        <div class="sf-item"><div class="sf-label">Balance</div><div class="sf-val" id="sf-bal">$0</div></div>
+      </div>
       <div class="sf-actions">
+        <button class="sf-btn save" onclick="saveQuote()">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+          Save Quote
+        </button>
         <button class="sf-btn print no-print" onclick="printCurrent()">⎙</button>
-        <button class="sf-btn save" onclick="saveQuote()">Save</button>
       </div>
     </div>
   </div>
@@ -350,12 +401,44 @@ const WORK_TYPES = {
   tearout_cd: 'Tearout & Rebuild + CD',
   custom:     'Custom (manual)'
 };
+// Zones whose sq ft receives a CD dressing coat (drives CG primer + sealer coverage)
+const CD_WORK_TYPES = ['cd_only','artifix_cd','regrade_cd','tearout_cd'];
+// Zone types that need a fill/regrade depth (drives ARDEX B-40 quantity)
+const FILL_WORK_TYPES = ['regrade_cd','tearout_cd'];
+
+// Where the app sends each saved quote so Cowork can pick it up and build the docs.
+// One-time setup, already deployed (2026-07-18) — do not change unless the Apps Script is redeployed.
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzsqdVy2NN7S1X3up3Pqq8pyulxHFAmSMBa10rHPo_sZJYxPNtXGVB_MrZZb6Lj_KM-/exec';
+
+// Materials coverage + unit pricing — locked from confirmed Fishman orders (Wynn Allen S9164827, Steven Prusak)
+// and Bruce's 2026-07-18 confirmation on CG primer + sealer coverage.
+const MATERIALS = {
+  cd:      { name:'ARDEX CD 40# Concrete Dressing',     coverage:60,   unit:'bag', price:82.57,  basis:'sqft' },   // 60 sq ft/bag @ 1/8"
+  b40:     { name:'ARDEX B-40 50# Trench Repair Mortar', coverage:0.4,  unit:'bag', price:40.01,  basis:'cuft' },  // 0.4 cu ft/bag
+  cp:      { name:'ARDEX CP 40# Concrete Patch',        coverage:22.5, unit:'bag', price:55.24,  basis:'sqft' },   // 22.5 sq ft/bag (general repair buffer, not zone-driven)
+  ardifix: { name:'ARDEX ARDIFIX 21.2oz Cartridge',     coverage:51,   unit:'cart',price:61.78,  basis:'lnft' },   // 51 ln ft/cart
+  cg:      { name:'ARDEX CG Primer (cut 1:1)',          coverage:250,  unit:'gal', price:113.17, basis:'sqft' },   // 250 sq ft/gal, applied before CD/CD Fine/B-40
+  sealer:  { name:'Sealer (topcoat)',                   coverage:340,  unit:'gal', price:50.00,  basis:'sqft' }    // 5 gal / 1,700 sq ft = 340 sq ft/gal — price/gal is an estimate ($250/5gal precedent), confirm
+};
+const DROP_BUFFER = 1.10; // +10% waste/edge-loss buffer, matches every confirmed order on file
+const DEFAULT_FILL_DEPTH_IN = 0.75; // editable per zone; matches the Wynn Allen job's tapered-fill average
+
+// ISB tier bands — starting guess (Bruce confirmed 2026-07-18), refine as more jobs come in.
+// Tier is always editable in the app; this only sets the default.
+const ISB_TIERS = { low:0.10, medium:0.17, top:0.20 };
+function guessIsbTier(total){
+  if(total > 8000) return 'top';
+  if(total >= 3000) return 'medium';
+  return 'low';
+}
 
 // ── STATE ──
 let zones = [];
 let zoneCounter = 0;
 let activeFilter = 'all';
 let currentDetailId = null;
+let isbTierManuallySet = false;
+let currentIsbTier = 'low';
 
 // ── STORAGE ──
 function loadQuotes(){ try{ return JSON.parse(localStorage.getItem('neo_quotes')||'[]') }catch(e){return[]} }
@@ -372,7 +455,9 @@ function nextQuoteNum(){
 window.addEventListener('DOMContentLoaded', () => {
   document.getElementById('b-date').value = fmtDate(new Date());
   renderHistory();
+  retryUnsyncedQuotes();
 });
+window.addEventListener('online', retryUnsyncedQuotes);
 
 function fmtDate(d){
   return d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
@@ -425,7 +510,7 @@ function renderHistory(){
         <div class="qc-num">${escHtml(q.quote_number||'—')} · ${fmtDate(new Date(q.created_at))}</div>
       </div>
       <div class="qc-right">
-        <div class="qc-total">${fmtMoney(q.grand_total)}</div>
+        <div class="qc-total">${fmtMoney(q.grand_total)}<span class="sync-dot ${q.synced?'synced':'pending'}" style="display:inline-block;margin-left:5px" title="${q.synced?'Synced to Cowork':'Not yet synced — will retry'}"></span></div>
         <div class="status-badge ${q.status||'pending'}">${q.status||'pending'}</div>
       </div>
     </div>`).join('');
@@ -435,6 +520,7 @@ function renderHistory(){
 function startNewQuote(){
   zones = [];
   zoneCounter = 0;
+  isbTierManuallySet = false;
   document.getElementById('b-name').value='';
   document.getElementById('b-address').value='';
   document.getElementById('b-phone').value='';
@@ -445,6 +531,7 @@ function startNewQuote(){
   document.getElementById('b-date').value = fmtDate(new Date());
   document.getElementById('b-valid').value = 30;
   document.getElementById('zone-list-builder').innerHTML = '';
+  setIsbTier(guessIsbTier(0), false);
   liveCalc();
   showScreen('builder');
 }
@@ -453,41 +540,62 @@ function startNewQuote(){
 function addZone(){
   const id = ++zoneCounter;
   const label = LABELS[(zones.length)%26];
-  const z = {id,label,name:'',width:'',length:'',sqft:0,workType:'cd_only',artifixLnft:'',customDesc:'',customPrice:'',total:0,lines:[]};
+  const z = {id,label,name:'',width:'',length:'',sqft:0,workType:'cd_only',artifixLnft:'',fillDepthIn:DEFAULT_FILL_DEPTH_IN,customDesc:'',customPrice:'',total:0,lines:[],photo:null};
   zones.push(z);
   const wrap = document.getElementById('zone-list-builder');
   const div = document.createElement('div');
   div.className='zone-card'; div.id=`zc-${id}`;
-  div.innerHTML = `
+  div.innerHTML = zoneCardHtml(z);
+  wrap.appendChild(div);
+}
+
+// Shared zone-card markup builder used by both addZone() (new, blank) and addZoneFromData() (editing a saved quote)
+function zoneCardHtml(z){
+  const id = z.id;
+  return `
     <div class="zone-head">
-      <div class="zone-letter">${label}</div>
-      <input class="zone-name-inp" type="text" placeholder="Zone description" oninput="zf(${id},'name',this.value)">
-      <div class="zone-total" id="zt-${id}">$0.00</div>
+      <div class="zone-letter">${z.label}</div>
+      <input class="zone-name-inp" type="text" placeholder="Zone description" value="${escAttr(z.name||'')}" oninput="zf(${id},'name',this.value)">
+      <div class="zone-total" id="zt-${id}">${fmtMoney(z.total)}</div>
       <button class="zone-del" onclick="removeZone(${id})">×</button>
     </div>
     <div class="zone-body">
       <div class="row3">
-        <div class="field"><label>Width ft</label><input type="number" inputmode="decimal" min="0" placeholder="0" oninput="zf(${id},'width',this.value)"></div>
-        <div class="field"><label>Length ft</label><input type="number" inputmode="decimal" min="0" placeholder="0" oninput="zf(${id},'length',this.value)"></div>
-        <div class="field"><label>Sq Ft</label><input type="number" id="zsf-${id}" readonly></div>
+        <div class="field"><label>Width ft</label><input type="number" inputmode="decimal" min="0" placeholder="0" value="${z.width||''}" oninput="zf(${id},'width',this.value)"></div>
+        <div class="field"><label>Length ft</label><input type="number" inputmode="decimal" min="0" placeholder="0" value="${z.length||''}" oninput="zf(${id},'length',this.value)"></div>
+        <div class="field"><label>Sq Ft</label><input type="number" id="zsf-${id}" value="${z.sqft||''}" readonly></div>
       </div>
       <div class="field" style="margin-top:10px"><label>Work Type</label>
         <select onchange="zf(${id},'workType',this.value)">
-          ${Object.entries(WORK_TYPES).map(([k,v])=>`<option value="${k}">${v}</option>`).join('')}
+          ${Object.entries(WORK_TYPES).map(([k,v])=>`<option value="${k}"${z.workType===k?' selected':''}>${v}</option>`).join('')}
         </select>
       </div>
-      <div class="artifix-row" id="ar-${id}">
-        <div class="field"><label>Artifix Linear Feet</label><input type="number" inputmode="decimal" min="0" placeholder="0 ln ft" oninput="zf(${id},'artifixLnft',this.value)"></div>
+      <div class="artifix-row${z.workType==='artifix_cd'?' show':''}" id="ar-${id}">
+        <div class="field"><label>Artifix Linear Feet</label><input type="number" inputmode="decimal" min="0" placeholder="0 ln ft" value="${z.artifixLnft||''}" oninput="zf(${id},'artifixLnft',this.value)"></div>
       </div>
-      <div class="custom-row" id="cr-${id}">
+      <div class="zone-fill-depth${FILL_WORK_TYPES.includes(z.workType)?' show':''}" id="fd-${id}">
+        <div class="field"><label>Fill Depth (in)</label><input type="number" inputmode="decimal" step="0.125" min="0" value="${z.fillDepthIn ?? DEFAULT_FILL_DEPTH_IN}" oninput="zf(${id},'fillDepthIn',this.value)"></div>
+      </div>
+      <div class="custom-row${z.workType==='custom'?' show':''}" id="cr-${id}">
         <div class="row2">
-          <div class="field"><label>Description</label><input type="text" placeholder="Custom work" oninput="zf(${id},'customDesc',this.value)"></div>
-          <div class="field"><label>Price ($)</label><input type="number" inputmode="decimal" min="0" placeholder="0.00" oninput="zf(${id},'customPrice',this.value)"></div>
+          <div class="field"><label>Description</label><input type="text" placeholder="Custom work" value="${escAttr(z.customDesc||'')}" oninput="zf(${id},'customDesc',this.value)"></div>
+          <div class="field"><label>Price ($)</label><input type="number" inputmode="decimal" min="0" placeholder="0.00" value="${z.customPrice||''}" oninput="zf(${id},'customPrice',this.value)"></div>
         </div>
       </div>
-      <div class="zone-li" id="zli-${id}"><div class="zli-row"><span style="color:var(--muted)">Enter dimensions above</span></div></div>
+      <div class="zone-photo-wrap">
+        <span class="zone-photo-label">Zone Photo</span>
+        <button type="button" class="zone-photo-btn" id="zpbtn-${id}" onclick="document.getElementById('zpin-${id}').click()">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
+          Add Photo
+        </button>
+        <input type="file" accept="image/*" capture="environment" id="zpin-${id}" style="display:none" onchange="handleZonePhoto(event,${id})">
+        <div class="zone-photo-preview${z.photo?' show':''}" id="zpprev-${id}">
+          <img id="zpimg-${id}" src="${z.photo||''}">
+          <button type="button" class="zone-photo-remove" onclick="removeZonePhoto(${id})">×</button>
+        </div>
+      </div>
+      <div class="zone-li" id="zli-${id}">${z.lines?.length?'':'<div class="zli-row"><span style="color:var(--muted)">Enter dimensions above</span></div>'}</div>
     </div>`;
-  wrap.appendChild(div);
 }
 
 function zf(id, field, val){
@@ -499,6 +607,8 @@ function zf(id, field, val){
   if(sfEl) sfEl.value = z.sqft||'';
   document.getElementById(`ar-${id}`).className = 'artifix-row'+(z.workType==='artifix_cd'?' show':'');
   document.getElementById(`cr-${id}`).className = 'custom-row'+(z.workType==='custom'?' show':'');
+  const fdEl = document.getElementById(`fd-${id}`);
+  if(fdEl) fdEl.className = 'zone-fill-depth'+(FILL_WORK_TYPES.includes(z.workType)?' show':'');
   calcZone(z);
   liveCalc();
 }
@@ -547,6 +657,112 @@ function liveCalc(){
   document.getElementById('sf-total').textContent=fmtMoney(grand);
   document.getElementById('sf-dep').textContent=fmtMoney(dep);
   document.getElementById('sf-bal').textContent=fmtMoney(dep);
+  if(!isbTierManuallySet) setIsbTier(guessIsbTier(grand), false);
+  renderMaterials();
+}
+
+// ── ISB TIER ──
+function setIsbTier(tier, manual=true){
+  if(manual) isbTierManuallySet = true;
+  document.querySelectorAll('.isb-tier-btn').forEach(b=>b.classList.toggle('active', b.dataset.tier===tier));
+  currentIsbTier = tier;
+}
+
+// ── ZONE PHOTOS ──
+function handleZonePhoto(evt, id){
+  const file = evt.target.files && evt.target.files[0];
+  if(!file) return;
+  compressImage(file, 1280, 0.7).then(dataUrl=>{
+    const z = zones.find(z=>z.id===id); if(!z) return;
+    z.photo = dataUrl;
+    document.getElementById(`zpimg-${id}`).src = dataUrl;
+    document.getElementById(`zpprev-${id}`).classList.add('show');
+    toast('Photo added');
+  }).catch(()=>toast('Could not read that photo — try again'));
+}
+
+function removeZonePhoto(id){
+  const z = zones.find(z=>z.id===id); if(!z) return;
+  z.photo = null;
+  document.getElementById(`zpprev-${id}`).classList.remove('show');
+  document.getElementById(`zpin-${id}`).value = '';
+}
+
+// Resizes to maxDim on the long edge and re-encodes as JPEG so photos stay small
+// enough for localStorage and the sync payload (phone camera originals can be 3-8MB each).
+function compressImage(file, maxDim, quality){
+  return new Promise((resolve, reject)=>{
+    const reader = new FileReader();
+    reader.onerror = reject;
+    reader.onload = () => {
+      const img = new Image();
+      img.onerror = reject;
+      img.onload = () => {
+        let w = img.width, h = img.height;
+        if(w > h && w > maxDim){ h = Math.round(h*maxDim/w); w = maxDim; }
+        else if(h > maxDim){ w = Math.round(w*maxDim/h); h = maxDim; }
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+// ── MATERIALS ENGINE ──
+// Computes bags/cartridges/gallons from the current zones using the confirmed coverage rates,
+// +10% drop buffer, rounded up to whole units — same math Cowork uses for the final Materials PDF.
+function computeMaterials(zoneList){
+  let cdSqft=0, artifixLnft=0, fillCuft=0, needsCP=false;
+  zoneList.forEach(z=>{
+    const sqft = z.sqft||0;
+    if(CD_WORK_TYPES.includes(z.workType)) cdSqft += sqft;
+    if(z.workType==='artifix_cd') artifixLnft += parseFloat(z.artifixLnft)||0;
+    if(FILL_WORK_TYPES.includes(z.workType)){
+      const depthFt = (parseFloat(z.fillDepthIn)||DEFAULT_FILL_DEPTH_IN)/12;
+      fillCuft += sqft*depthFt;
+      needsCP = true;
+    }
+  });
+
+  const items = [];
+  let totalCost = 0;
+  function addItem(key, rawQty){
+    if(rawQty<=0) return;
+    const m = MATERIALS[key];
+    const withBuffer = rawQty*DROP_BUFFER;
+    const units = Math.ceil(withBuffer);
+    const cost = units*m.price;
+    totalCost += cost;
+    items.push({name:m.name, units, unit:m.unit, cost});
+  }
+
+  addItem('cd', cdSqft/MATERIALS.cd.coverage);
+  addItem('ardifix', artifixLnft/MATERIALS.ardifix.coverage);
+  addItem('b40', fillCuft/MATERIALS.b40.coverage);
+  if(needsCP) addItem('cp', 2); // general repair buffer — not zone-driven, matches historical ~2-bag average; adjust manually if needed
+  addItem('cg', cdSqft/MATERIALS.cg.coverage);       // primer, cut 1:1, goes down before CD/CD Fine/B-40
+  addItem('sealer', cdSqft/MATERIALS.sealer.coverage);
+
+  return {items, totalCost, cdSqft};
+}
+
+function renderMaterials(){
+  const panel = document.getElementById('materials-panel');
+  const chip = document.getElementById('mat-total-chip');
+  if(!panel) return;
+  const {items, totalCost} = computeMaterials(zones);
+  if(!items.length){
+    panel.innerHTML = '<div class="mat-empty">Add zone dimensions to see a live materials estimate</div>';
+    chip.textContent = '$0';
+    return;
+  }
+  panel.innerHTML = items.map(i=>`<div class="mat-row"><span class="mat-name">${i.name} × ${i.units} ${i.unit}${i.units===1?'':'s'}</span><span>${fmtMoney(i.cost)}</span></div>`).join('')
+    + `<div class="mat-row"><span>Est. Materials Subtotal</span><span>${fmtMoney(totalCost)}</span></div>`;
+  chip.textContent = fmtMoney(totalCost);
 }
 
 // ── SAVE QUOTE ──
@@ -555,6 +771,7 @@ function saveQuote(){
   if(!name){ toast('Enter a client name first'); return; }
   if(!zones.length){ toast('Add at least one zone'); return; }
   const grand = zones.reduce((s,z)=>s+(z.total||0),0);
+  const materials = computeMaterials(zones);
   const q = {
     id: Date.now()+'',
     quote_number: document.getElementById('b-qnum').value.trim(),
@@ -566,14 +783,53 @@ function saveQuote(){
     valid_days:     document.getElementById('b-valid').value,
     status:         'pending',
     grand_total:    grand,
+    isb_tier:       currentIsbTier,
+    materials:      materials.items,
+    materials_cost: materials.totalCost,
     zones:          JSON.parse(JSON.stringify(zones)),
-    created_at:     new Date().toISOString()
+    created_at:     new Date().toISOString(),
+    synced:         false
   };
   const all = loadQuotes();
   all.unshift(q);
   saveQuotes(all);
-  toast('Quote saved!');
+  toast('Quote saved — syncing…');
+  syncQuote(q).then(ok=>{
+    toast(ok ? 'Saved ✓ Synced to Cowork ✓' : 'Saved ✓ (will sync when back online)');
+  });
   setTimeout(()=>{ renderHistory(); showScreen('history'); },600);
+}
+
+// ── SYNC TO COWORK (Apps Script → Drive) ──
+// Fire-and-forget: local save already happened above, so a failed/offline sync never loses the quote.
+// Unsynced quotes are retried automatically next time the app loads with a connection.
+function syncQuote(q){
+  const payload = JSON.parse(JSON.stringify(q));
+  return fetch(APPS_SCRIPT_URL, { method:'POST', body: JSON.stringify(payload) })
+    .then(res => res.text())
+    .then(text => {
+      let ok = false;
+      try { ok = JSON.parse(text).status === 'ok'; } catch(e){ ok = false; }
+      markSynced(q.id, ok);
+      return ok;
+    })
+    .catch(() => { markSynced(q.id, false); return false; });
+}
+
+function markSynced(id, ok){
+  const all = loadQuotes();
+  const q = all.find(x=>x.id===id);
+  if(!q) return;
+  q.synced = ok;
+  q.last_sync_attempt = new Date().toISOString();
+  saveQuotes(all);
+  renderHistory();
+}
+
+// Retries any quote that never made it to Drive (offline save at a job site, etc.)
+function retryUnsyncedQuotes(){
+  const unsynced = loadQuotes().filter(q => !q.synced);
+  unsynced.forEach(q => syncQuote(q));
 }
 
 // ── DETAIL VIEW ──
@@ -679,43 +935,20 @@ function editQuote(id){
   const wrap = document.getElementById('zone-list-builder');
   wrap.innerHTML = '';
   zones.forEach(z=>{ zoneCounter=Math.max(zoneCounter,z.id); addZoneFromData(z); });
+  isbTierManuallySet = true; // preserve the tier this quote was saved with; edit further via the tier buttons
+  setIsbTier(q.isb_tier || guessIsbTier(q.grand_total||0), true);
   liveCalc();
   showScreen('builder');
 }
 
 function addZoneFromData(z){
+  // Backfill fields that may not exist on quotes saved before photos/fill-depth were added
+  if(z.fillDepthIn===undefined) z.fillDepthIn = DEFAULT_FILL_DEPTH_IN;
+  if(z.photo===undefined) z.photo = null;
   const wrap = document.getElementById('zone-list-builder');
   const div = document.createElement('div');
   div.className='zone-card'; div.id=`zc-${z.id}`;
-  div.innerHTML=`
-    <div class="zone-head">
-      <div class="zone-letter">${z.label}</div>
-      <input class="zone-name-inp" type="text" placeholder="Zone description" value="${escAttr(z.name||'')}" oninput="zf(${z.id},'name',this.value)">
-      <div class="zone-total" id="zt-${z.id}">${fmtMoney(z.total)}</div>
-      <button class="zone-del" onclick="removeZone(${z.id})">×</button>
-    </div>
-    <div class="zone-body">
-      <div class="row3">
-        <div class="field"><label>Width ft</label><input type="number" inputmode="decimal" min="0" value="${z.width||''}" oninput="zf(${z.id},'width',this.value)"></div>
-        <div class="field"><label>Length ft</label><input type="number" inputmode="decimal" min="0" value="${z.length||''}" oninput="zf(${z.id},'length',this.value)"></div>
-        <div class="field"><label>Sq Ft</label><input type="number" id="zsf-${z.id}" value="${z.sqft||''}" readonly></div>
-      </div>
-      <div class="field" style="margin-top:10px"><label>Work Type</label>
-        <select onchange="zf(${z.id},'workType',this.value)">
-          ${Object.entries(WORK_TYPES).map(([k,v])=>`<option value="${k}"${z.workType===k?' selected':''}>${v}</option>`).join('')}
-        </select>
-      </div>
-      <div class="artifix-row${z.workType==='artifix_cd'?' show':''}" id="ar-${z.id}">
-        <div class="field"><label>Artifix Linear Feet</label><input type="number" inputmode="decimal" min="0" value="${z.artifixLnft||''}" oninput="zf(${z.id},'artifixLnft',this.value)"></div>
-      </div>
-      <div class="custom-row${z.workType==='custom'?' show':''}" id="cr-${z.id}">
-        <div class="row2">
-          <div class="field"><label>Description</label><input type="text" value="${escAttr(z.customDesc||'')}" oninput="zf(${z.id},'customDesc',this.value)"></div>
-          <div class="field"><label>Price ($)</label><input type="number" inputmode="decimal" min="0" value="${z.customPrice||''}" oninput="zf(${z.id},'customPrice',this.value)"></div>
-        </div>
-      </div>
-      <div class="zone-li" id="zli-${z.id}"></div>
-    </div>`;
+  div.innerHTML = zoneCardHtml(z);
   wrap.appendChild(div);
   calcZone(z);
   const zli=document.getElementById(`zli-${z.id}`);
