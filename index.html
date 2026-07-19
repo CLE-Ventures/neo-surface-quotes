@@ -134,6 +134,8 @@ input,select,textarea{font-family:inherit;font-size:15px}
 .zli-amt{font-weight:600}
 .artifix-row{display:none;margin-top:10px}
 .artifix-row.show{display:block}
+.spall-row{display:none;margin-top:10px}
+.spall-row.show{display:block}
 .custom-row{display:none;margin-top:10px}
 .custom-row.show{display:block}
 
@@ -392,19 +394,24 @@ input,select,textarea{font-family:inherit;font-size:15px}
 
 <script>
 // ── CONSTANTS ──
-const RATES = { cd:7, artifix:8, regrade:4, tearout:15 };
+// cd = CD overlay $/sq ft (benchmarked to Steven P, 2026-07-19). spall = spalling surcharge ADDED on top of cd
+// (spalled area is charged cd + spall = $11/sq ft). regrade = fill-to-regrade $/sq ft. tearout = tearout & rebuild $/sq ft.
+const RATES = { cd:8, artifix:8, regrade:4, tearout:15, spall:3 };
 const LABELS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 const WORK_TYPES = {
   cd_only:    'CD Overlay Only',
   artifix_cd: 'Artifix Crack Fill + CD',
+  spall_cd:   'Spalling Repair + CD',
   regrade_cd: 'Fill to Regrade + CD',
   tearout_cd: 'Tearout & Rebuild + CD',
   custom:     'Custom (manual)'
 };
 // Zones whose sq ft receives a CD dressing coat (drives CG primer + sealer coverage)
-const CD_WORK_TYPES = ['cd_only','artifix_cd','regrade_cd','tearout_cd'];
-// Zone types that need a fill/regrade depth (drives ARDEX B-40 quantity)
+const CD_WORK_TYPES = ['cd_only','artifix_cd','spall_cd','regrade_cd','tearout_cd'];
+// Zone types that show the fill-depth (depth of correction) field
 const FILL_WORK_TYPES = ['regrade_cd','tearout_cd'];
+// Regrade zones: CP is computed from the wedge VOLUME of the slope correction (½ × area × depth)
+const CP_VOLUME_TYPES = ['regrade_cd'];
 
 // Where the app sends each saved quote so Cowork can pick it up and build the docs.
 // One-time setup, already deployed (2026-07-18) — do not change unless the Apps Script is redeployed.
@@ -414,8 +421,8 @@ const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzsqdVy2NN7S1X3
 // and Bruce's 2026-07-18 confirmation on CG primer + sealer coverage.
 const MATERIALS = {
   cd:      { name:'ARDEX CD 40# Concrete Dressing',     coverage:60,   unit:'bag', price:82.57,  basis:'sqft' },   // 60 sq ft/bag @ 1/8"
-  b40:     { name:'ARDEX B-40 50# Trench Repair Mortar', coverage:0.4,  unit:'bag', price:40.01,  basis:'cuft' },  // 0.4 cu ft/bag
-  cp:      { name:'ARDEX CP 40# Concrete Patch',        coverage:22.5, unit:'bag', price:55.24,  basis:'sqft' },   // 22.5 sq ft/bag (general repair buffer, not zone-driven)
+  b40:     { name:'ARDEX B-40 50# Trench Repair Mortar', coverage:0.4,  unit:'bag', price:40.01,  basis:'cuft' },  // MANUAL ONLY — deep trench/structural; no longer auto-driven by regrade
+  cp:      { name:'ARDEX CP 40# Concrete Patch',        coverage:22.5, coverageCuft:0.47, unit:'bag', price:55.24, basis:'sqft' }, // 22.5 sq ft/bag for surface patch (spalling); ~0.47 cu ft/bag for volume fills (regrade) — 22.5 sq ft @ 1/4" ref, CONFIRM YIELD
   ardifix: { name:'ARDEX ARDIFIX 21.2oz Cartridge',     coverage:51,   unit:'cart',price:61.78,  basis:'lnft' },   // 51 ln ft/cart
   cg:      { name:'ARDEX CG Primer (cut 1:1)',          coverage:250,  unit:'gal', price:113.17, basis:'sqft' },   // 250 sq ft/gal, applied before CD/CD Fine/B-40
   sealer:  { name:'Sealer (topcoat)',                   coverage:340,  unit:'gal', price:50.00,  basis:'sqft' }    // 5 gal / 1,700 sq ft = 340 sq ft/gal — price/gal is an estimate ($250/5gal precedent), confirm
@@ -573,6 +580,9 @@ function zoneCardHtml(z){
       <div class="artifix-row${z.workType==='artifix_cd'?' show':''}" id="ar-${id}">
         <div class="field"><label>Artifix Linear Feet</label><input type="number" inputmode="decimal" min="0" placeholder="0 ln ft" value="${z.artifixLnft||''}" oninput="zf(${id},'artifixLnft',this.value)"></div>
       </div>
+      <div class="spall-row${z.workType==='spall_cd'?' show':''}" id="sp-${id}">
+        <div class="field"><label>Spalling Sq Ft (within zone)</label><input type="number" inputmode="decimal" min="0" placeholder="0 sq ft needing CP repair" value="${z.spallSqft||''}" oninput="zf(${id},'spallSqft',this.value)"></div>
+      </div>
       <div class="zone-fill-depth${FILL_WORK_TYPES.includes(z.workType)?' show':''}" id="fd-${id}">
         <div class="field"><label>Fill Depth (in)</label><input type="number" inputmode="decimal" step="0.125" min="0" value="${z.fillDepthIn ?? DEFAULT_FILL_DEPTH_IN}" oninput="zf(${id},'fillDepthIn',this.value)"></div>
       </div>
@@ -606,6 +616,7 @@ function zf(id, field, val){
   const sfEl = document.getElementById(`zsf-${id}`);
   if(sfEl) sfEl.value = z.sqft||'';
   document.getElementById(`ar-${id}`).className = 'artifix-row'+(z.workType==='artifix_cd'?' show':'');
+  document.getElementById(`sp-${id}`).className = 'spall-row'+(z.workType==='spall_cd'?' show':'');
   document.getElementById(`cr-${id}`).className = 'custom-row'+(z.workType==='custom'?' show':'');
   const fdEl = document.getElementById(`fd-${id}`);
   if(fdEl) fdEl.className = 'zone-fill-depth'+(FILL_WORK_TYPES.includes(z.workType)?' show':'');
@@ -630,6 +641,11 @@ function calcZone(z){
     const at=lnft*RATES.artifix, ct=sqft*RATES.cd; total=at+ct;
     if(lnft>0) lines.push({d:`Artifix crack fill (${lnft} ln ft × $${RATES.artifix})`,a:at});
     if(sqft>0) lines.push({d:`CD overlay (${sqft} sq ft × $${RATES.cd})`,a:ct});
+  } else if(z.workType==='spall_cd'){
+    const spallSf=parseFloat(z.spallSqft)||0;
+    const ct=sqft*RATES.cd, st=spallSf*RATES.spall; total=ct+st;
+    if(sqft>0) lines.push({d:`CD overlay (${sqft} sq ft × $${RATES.cd})`,a:ct});
+    if(spallSf>0) lines.push({d:`Spalling repair surcharge (${spallSf} sq ft × $${RATES.spall})`,a:st});
   } else if(z.workType==='regrade_cd'){
     const rt=sqft*RATES.regrade, ct=sqft*RATES.cd; total=rt+ct;
     if(sqft>0){ lines.push({d:`Fill to regrade (${sqft} sq ft × $${RATES.regrade})`,a:rt}); lines.push({d:`CD overlay (${sqft} sq ft × $${RATES.cd})`,a:ct}); }
@@ -716,15 +732,15 @@ function compressImage(file, maxDim, quality){
 // Computes bags/cartridges/gallons from the current zones using the confirmed coverage rates,
 // +10% drop buffer, rounded up to whole units — same math Cowork uses for the final Materials PDF.
 function computeMaterials(zoneList){
-  let cdSqft=0, artifixLnft=0, fillCuft=0, needsCP=false;
+  let cdSqft=0, artifixLnft=0, cpAreaSqft=0, cpFillCuft=0;
   zoneList.forEach(z=>{
     const sqft = z.sqft||0;
     if(CD_WORK_TYPES.includes(z.workType)) cdSqft += sqft;
     if(z.workType==='artifix_cd') artifixLnft += parseFloat(z.artifixLnft)||0;
-    if(FILL_WORK_TYPES.includes(z.workType)){
+    if(z.workType==='spall_cd') cpAreaSqft += parseFloat(z.spallSqft)||0;  // spalling: CP by the spalled sq ft specified within the zone (22.5 sq ft/bag)
+    if(CP_VOLUME_TYPES.includes(z.workType)){                       // regrade: CP by wedge volume of the slope correction
       const depthFt = (parseFloat(z.fillDepthIn)||DEFAULT_FILL_DEPTH_IN)/12;
-      fillCuft += sqft*depthFt;
-      needsCP = true;
+      cpFillCuft += 0.5 * sqft * depthFt;                           // wedge = ½ × area × max depth (slope tapers to 0 across the run)
     }
   });
 
