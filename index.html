@@ -756,11 +756,12 @@ function computeMaterials(zoneList){
     items.push({name:m.name, units, unit:m.unit, cost});
   }
 
+  // CP = spalling surface area (22.5 sq ft/bag) + regrade wedge volume (~0.47 cu ft/bag), combined into one line
+  const cpBags = cpAreaSqft/MATERIALS.cp.coverage + cpFillCuft/MATERIALS.cp.coverageCuft;
   addItem('cd', cdSqft/MATERIALS.cd.coverage);
   addItem('ardifix', artifixLnft/MATERIALS.ardifix.coverage);
-  addItem('b40', fillCuft/MATERIALS.b40.coverage);
-  if(needsCP) addItem('cp', 2); // general repair buffer — not zone-driven, matches historical ~2-bag average; adjust manually if needed
-  addItem('cg', cdSqft/MATERIALS.cg.coverage);       // primer, cut 1:1, goes down before CD/CD Fine/B-40
+  addItem('cp', cpBags);
+  addItem('cg', cdSqft/MATERIALS.cg.coverage);       // primer, cut 1:1, goes down before CD
   addItem('sealer', cdSqft/MATERIALS.sealer.coverage);
 
   return {items, totalCost, cdSqft};
