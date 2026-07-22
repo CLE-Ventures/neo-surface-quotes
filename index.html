@@ -166,6 +166,8 @@ input,select,textarea{font-family:inherit;font-size:15px}
 .isb-tier-btn{flex:1;padding:10px 6px;border-radius:8px;font-size:11px;font-weight:700;border:2px solid var(--border);background:var(--white);color:var(--muted);text-align:center;line-height:1.3}
 .isb-tier-btn.active{border-color:var(--gold);background:#fdf6e3;color:var(--amber)}
 .isb-tier-sub{font-size:9px;color:var(--muted);margin-top:2px;font-weight:500;text-transform:none;letter-spacing:0}
+.bundle-tier-btn{flex:1;padding:10px 6px;border-radius:8px;font-size:11px;font-weight:700;border:2px solid var(--border);background:var(--white);color:var(--muted);text-align:center;line-height:1.3}
+.bundle-tier-btn.active{border-color:var(--gold);background:#fdf6e3;color:var(--amber)}
 
 /* ── STICKY TOTAL FOOTER ── */
 .sticky-footer{
@@ -318,6 +320,13 @@ input,select,textarea{font-family:inherit;font-size:15px}
               <button type="button" class="isb-tier-btn" data-tier="top" onclick="setIsbTier('top')">Top Dollar<div class="isb-tier-sub">20%</div></button>
             </div>
           </div>
+          <div class="field">
+            <label>CD Overlay Rate <span style="text-transform:none;font-weight:500;color:var(--muted)">(bundle discount if customer takes full quoted scope)</span></label>
+            <div class="isb-tier-row" id="bundle-tier-row">
+              <button type="button" class="bundle-tier-btn active" data-bundle="standard" onclick="setBundleDiscount(false)">Standard<div class="isb-tier-sub">$8.00/sf</div></button>
+              <button type="button" class="bundle-tier-btn" data-bundle="bundle" onclick="setBundleDiscount(true)">Full-Scope Bundle<div class="isb-tier-sub">$7.75/sf</div></button>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -394,9 +403,14 @@ input,select,textarea{font-family:inherit;font-size:15px}
 
 <script>
 // ── CONSTANTS ──
-// cd = CD overlay $/sq ft (benchmarked to Steven P, 2026-07-19). spall = spalling surcharge ADDED on top of cd
-// (spalled area is charged cd + spall = $11/sq ft). regrade = fill-to-regrade $/sq ft. tearout = tearout & rebuild $/sq ft.
+// cd = CD overlay $/sq ft, standard rate (confirmed 2026-07-22, was $7.00 prior to this date). spall = spalling
+// surcharge ADDED on top of cd (spalled area is charged cd + spall = $11/sq ft standard). regrade = fill-to-regrade
+// $/sq ft. tearout = tearout & rebuild $/sq ft. Only the CD portion gets the bundle discount below — artifix,
+// regrade, tearout, and spall rates are unaffected by the bundle toggle.
 const RATES = { cd:8, artifix:8, regrade:4, tearout:15, spall:3 };
+// Bundle-discount CD rate — applies when the customer elects the FULL quoted scope (toggle in the builder).
+// Confirmed 2026-07-22: standard $8.00/sf, bundle $7.75/sf (-$0.25/sf), same policy used on Kerry Carr (QT-2026-003).
+const CD_BUNDLE_RATE = 7.75;
 const LABELS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 const WORK_TYPES = {
   cd_only:    'CD Overlay Only',
@@ -446,6 +460,7 @@ let activeFilter = 'all';
 let currentDetailId = null;
 let isbTierManuallySet = false;
 let currentIsbTier = 'low';
+let bundleDiscount = false; // true = customer elected full quoted scope, CD rate drops to CD_BUNDLE_RATE
 
 // ── STORAGE ──
 function loadQuotes(){ try{ return JSON.parse(localStorage.getItem('neo_quotes')||'[]') }catch(e){return[]} }
@@ -539,6 +554,7 @@ function startNewQuote(){
   document.getElementById('b-valid').value = 30;
   document.getElementById('zone-list-builder').innerHTML = '';
   setIsbTier(guessIsbTier(0), false);
+  setBundleDiscount(false);
   liveCalc();
   showScreen('builder');
 }
@@ -581,7 +597,12 @@ function zoneCardHtml(z){
         <div class="field"><label>Artifix Linear Feet</label><input type="number" inputmode="decimal" min="0" placeholder="0 ln ft" value="${z.artifixLnft||''}" oninput="zf(${id},'artifixLnft',this.value)"></div>
       </div>
       <div class="spall-row${z.workType==='spall_cd'?' show':''}" id="sp-${id}">
-        <div class="field"><label>Spalling Sq Ft (within zone)</label><input type="number" inputmode="decimal" min="0" placeholder="0 sq ft needing CP repair" value="${z.spallSqft||''}" oninput="zf(${id},'spallSqft',this.value)"></div>
+        <label style="display:block;font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:5px">Spalled Area (within zone)</label>
+        <div class="row3">
+          <div class="field"><label>Width ft</label><input type="number" inputmode="decimal" min="0" placeholder="0" value="${z.spallW||''}" oninput="zf(${id},'spallW',this.value)"></div>
+          <div class="field"><label>Length ft</label><input type="number" inputmode="decimal" min="0" placeholder="0" value="${z.spallL||''}" oninput="zf(${id},'spallL',this.value)"></div>
+          <div class="field"><label>Sq Ft</label><input type="number" id="zspsf-${id}" value="${z.spallSqft||''}" readonly></div>
+        </div>
       </div>
       <div class="zone-fill-depth${FILL_WORK_TYPES.includes(z.workType)?' show':''}" id="fd-${id}">
         <div class="field"><label>Fill Depth (in)</label><input type="number" inputmode="decimal" step="0.125" min="0" value="${z.fillDepthIn ?? DEFAULT_FILL_DEPTH_IN}" oninput="zf(${id},'fillDepthIn',this.value)"></div>
@@ -615,6 +636,11 @@ function zf(id, field, val){
   z.sqft = w*l;
   const sfEl = document.getElementById(`zsf-${id}`);
   if(sfEl) sfEl.value = z.sqft||'';
+  // Spalled sub-area = its own width × length (computed, read-only)
+  const sw=parseFloat(z.spallW)||0, sl=parseFloat(z.spallL)||0;
+  z.spallSqft = sw*sl;
+  const spsfEl = document.getElementById(`zspsf-${id}`);
+  if(spsfEl) spsfEl.value = z.spallSqft||'';
   document.getElementById(`ar-${id}`).className = 'artifix-row'+(z.workType==='artifix_cd'?' show':'');
   document.getElementById(`sp-${id}`).className = 'spall-row'+(z.workType==='spall_cd'?' show':'');
   document.getElementById(`cr-${id}`).className = 'custom-row'+(z.workType==='custom'?' show':'');
@@ -633,25 +659,27 @@ function removeZone(id){
 
 function calcZone(z){
   const sqft=z.sqft; let total=0,lines=[];
+  const cdRate = bundleDiscount ? CD_BUNDLE_RATE : RATES.cd; // only the CD portion is discounted by the bundle toggle
+  const cdLabel = bundleDiscount ? `CD overlay — bundle rate` : `CD overlay`;
   if(z.workType==='cd_only'){
-    const t=sqft*RATES.cd; total=t;
-    if(sqft>0) lines.push({d:`CD overlay (${sqft} sq ft × $${RATES.cd})`,a:t});
+    const t=sqft*cdRate; total=t;
+    if(sqft>0) lines.push({d:`${cdLabel} (${sqft} sq ft × $${cdRate})`,a:t});
   } else if(z.workType==='artifix_cd'){
     const lnft=parseFloat(z.artifixLnft)||0;
-    const at=lnft*RATES.artifix, ct=sqft*RATES.cd; total=at+ct;
+    const at=lnft*RATES.artifix, ct=sqft*cdRate; total=at+ct;
     if(lnft>0) lines.push({d:`Artifix crack fill (${lnft} ln ft × $${RATES.artifix})`,a:at});
-    if(sqft>0) lines.push({d:`CD overlay (${sqft} sq ft × $${RATES.cd})`,a:ct});
+    if(sqft>0) lines.push({d:`${cdLabel} (${sqft} sq ft × $${cdRate})`,a:ct});
   } else if(z.workType==='spall_cd'){
     const spallSf=parseFloat(z.spallSqft)||0;
-    const ct=sqft*RATES.cd, st=spallSf*RATES.spall; total=ct+st;
-    if(sqft>0) lines.push({d:`CD overlay (${sqft} sq ft × $${RATES.cd})`,a:ct});
+    const ct=sqft*cdRate, st=spallSf*RATES.spall; total=ct+st;
+    if(sqft>0) lines.push({d:`${cdLabel} (${sqft} sq ft × $${cdRate})`,a:ct});
     if(spallSf>0) lines.push({d:`Spalling repair surcharge (${spallSf} sq ft × $${RATES.spall})`,a:st});
   } else if(z.workType==='regrade_cd'){
-    const rt=sqft*RATES.regrade, ct=sqft*RATES.cd; total=rt+ct;
-    if(sqft>0){ lines.push({d:`Fill to regrade (${sqft} sq ft × $${RATES.regrade})`,a:rt}); lines.push({d:`CD overlay (${sqft} sq ft × $${RATES.cd})`,a:ct}); }
+    const rt=sqft*RATES.regrade, ct=sqft*cdRate; total=rt+ct;
+    if(sqft>0){ lines.push({d:`Fill to regrade (${sqft} sq ft × $${RATES.regrade})`,a:rt}); lines.push({d:`${cdLabel} (${sqft} sq ft × $${cdRate})`,a:ct}); }
   } else if(z.workType==='tearout_cd'){
-    const tt=sqft*RATES.tearout, ct=sqft*RATES.cd; total=tt+ct;
-    if(sqft>0){ lines.push({d:`Tearout & disposal (${sqft} sq ft × $${RATES.tearout})`,a:tt}); lines.push({d:`CD overlay (${sqft} sq ft × $${RATES.cd})`,a:ct}); }
+    const tt=sqft*RATES.tearout, ct=sqft*cdRate; total=tt+ct;
+    if(sqft>0){ lines.push({d:`Tearout & disposal (${sqft} sq ft × $${RATES.tearout})`,a:tt}); lines.push({d:`${cdLabel} (${sqft} sq ft × $${cdRate})`,a:ct}); }
   } else if(z.workType==='custom'){
     const p=parseFloat(z.customPrice)||0; total=p;
     if(p>0) lines.push({d:z.customDesc||'Custom work',a:p});
@@ -682,6 +710,16 @@ function setIsbTier(tier, manual=true){
   if(manual) isbTierManuallySet = true;
   document.querySelectorAll('.isb-tier-btn').forEach(b=>b.classList.toggle('active', b.dataset.tier===tier));
   currentIsbTier = tier;
+}
+
+// ── BUNDLE DISCOUNT ──
+// Toggling this re-rates every existing zone's CD portion (standard $8.00 <-> bundle $7.75) and
+// recalculates totals live. Only fires when the customer elects the full quoted scope.
+function setBundleDiscount(on){
+  bundleDiscount = on;
+  document.querySelectorAll('.bundle-tier-btn').forEach(b=>b.classList.toggle('active', b.dataset.bundle===(on?'bundle':'standard')));
+  zones.forEach(z=>calcZone(z));
+  liveCalc();
 }
 
 // ── ZONE PHOTOS ──
@@ -801,6 +839,7 @@ function saveQuote(){
     status:         'pending',
     grand_total:    grand,
     isb_tier:       currentIsbTier,
+    bundle_discount: bundleDiscount,
     materials:      materials.items,
     materials_cost: materials.totalCost,
     zones:          JSON.parse(JSON.stringify(zones)),
@@ -954,6 +993,7 @@ function editQuote(id){
   zones.forEach(z=>{ zoneCounter=Math.max(zoneCounter,z.id); addZoneFromData(z); });
   isbTierManuallySet = true; // preserve the tier this quote was saved with; edit further via the tier buttons
   setIsbTier(q.isb_tier || guessIsbTier(q.grand_total||0), true);
+  setBundleDiscount(!!q.bundle_discount); // preserve the rate this quote was saved with; edit further via the toggle
   liveCalc();
   showScreen('builder');
 }
